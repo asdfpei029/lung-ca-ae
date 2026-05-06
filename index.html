@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>肺癌 AE 評估工具</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --surface2: #f0f1f5;
+    --border: #dde1ec;
+    --accent: #2563eb;
+    --accent-light: #eff4ff;
+    --accent2: #6d4aff;
+    --accent2-light: #f3f0ff;
+    --green: #059669;
+    --green-bg: #ecfdf5;
+    --yellow: #b45309;
+    --yellow-bg: #fffbeb;
+    --orange: #c2410c;
+    --orange-bg: #fff7ed;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --text: #1e2235;
+    --text2: #4b5473;
+    --text3: #8b93b0;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Noto Sans TC', sans-serif;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; font-size: 14px; }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px; }
+  .title { font-size: 15px; font-weight: 700; color: var(--text); }
+  .subtitle { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-left: auto; }
+
+  .container { max-width: 920px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  .steps {
+    display: flex; margin-bottom: 24px;
+    border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    background: var(--surface); box-shadow: var(--shadow);
+  }
+  .step {
+    flex: 1; padding: 10px 6px; text-align: center;
+    font-family: var(--mono); font-size: 10px; color: var(--text3);
+    border-right: 1px solid var(--border); background: var(--surface);
+    letter-spacing: 0.3px; cursor: default; transition: background 0.15s;
+  }
+  .step:last-child { border-right: none; }
+  .step.active { color: var(--accent); background: var(--accent-light); font-weight: 600; }
+  .step.done { color: var(--green); background: var(--green-bg); cursor: pointer; }
+  .step.done:hover { opacity: 0.8; }
+  .step-num { display: block; font-size: 15px; font-weight: 700; margin-bottom: 1px; }
+
+  .section-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); overflow: hidden; }
+  .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface2); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+  .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 10px; margin-bottom: 24px; }
+  .cat-btn {
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 14px 12px; cursor: pointer; transition: all 0.15s; text-align: left;
+    box-shadow: var(--shadow);
+  }
+  .cat-btn:hover { border-color: var(--accent); background: var(--accent-light); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+  .cat-btn.selected { border-color: var(--accent); background: var(--accent-light); border-width: 2px; }
+  .cat-icon { font-size: 22px; margin-bottom: 8px; display: block; }
+  .cat-name { font-size: 13px; font-weight: 700; color: var(--text); }
+  .cat-sub { font-size: 10px; color: var(--text3); margin-top: 3px; font-family: var(--mono); line-height: 1.4; }
+
+  .nav-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .back-btn {
+    display: flex; align-items: center; gap: 5px;
+    background: none; border: 1px solid var(--border); color: var(--text2);
+    border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+    font-family: var(--sans); transition: all 0.15s;
+  }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  .tag { display: inline-block; font-family: var(--mono); font-size: 9px; padding: 2px 5px; border-radius: 4px; font-weight: 600; letter-spacing: 0.3px; white-space: nowrap; }
+  .tag-common { background: #dbeafe; color: #1d4ed8; }
+  .tag-drug   { background: #fef3c7; color: #92400e; }
+  .tag-cross  { background: #ede9fe; color: #5b21b6; }
+  .tag-warn   { background: #fee2e2; color: #b91c1c; }
+
+  .ae-group-label { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 2px; margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); text-transform: uppercase; }
+  .ae-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+  .ae-btn {
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 7px;
+    padding: 7px 11px; cursor: pointer; transition: all 0.12s;
+    display: flex; align-items: center; gap: 6px; box-shadow: var(--shadow);
+  }
+  .ae-btn:hover { border-color: var(--accent2); background: var(--accent2-light); }
+  .ae-btn.selected { border-color: var(--accent2); background: var(--accent2-light); border-width: 2px; }
+  .ae-zh { font-size: 12px; color: var(--text); font-weight: 500; }
+  .ae-en { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+
+  .confirm-btn {
+    width: 100%; margin-top: 20px; background: var(--accent); color: white;
+    border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: var(--sans); transition: opacity 0.15s; box-shadow: var(--shadow-md);
+  }
+  .confirm-btn:hover { opacity: 0.88; }
+
+  .selected-ae-item { padding: 16px; border-bottom: 1px solid var(--border); }
+  .selected-ae-item:last-child { border-bottom: none; }
+  .ae-name-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .ae-remove { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 18px; padding: 0 2px; line-height: 1; margin-left: auto; transition: color 0.12s; flex-shrink: 0; }
+  .ae-remove:hover { color: var(--red); }
+
+  .grade-row { display: flex; gap: 7px; flex-wrap: wrap; }
+  .grade-btn {
+    border: 1.5px solid var(--border); border-radius: 8px; padding: 8px 11px;
+    cursor: pointer; background: var(--surface2); transition: all 0.12s;
+    text-align: left; min-width: 160px; flex: 1;
+  }
+  .grade-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+  .grade-num { font-family: var(--mono); font-size: 11px; font-weight: 700; margin-bottom: 3px; }
+  .grade-desc { font-size: 10px; color: var(--text2); line-height: 1.35; }
+
+  .grade-btn.g1 { border-color: #a7f3d0; } .grade-btn.g1 .grade-num { color: var(--green); }
+  .grade-btn.g1:hover,.grade-btn.g1.selected { background: var(--green-bg); border-color: var(--green); border-width: 2px; }
+  .grade-btn.g2 { border-color: #fde68a; } .grade-btn.g2 .grade-num { color: var(--yellow); }
+  .grade-btn.g2:hover,.grade-btn.g2.selected { background: var(--yellow-bg); border-color: var(--yellow); border-width: 2px; }
+  .grade-btn.g3 { border-color: #fed7aa; } .grade-btn.g3 .grade-num { color: var(--orange); }
+  .grade-btn.g3:hover,.grade-btn.g3.selected { background: var(--orange-bg); border-color: var(--orange); border-width: 2px; }
+  .grade-btn.g4 { border-color: #fecaca; } .grade-btn.g4 .grade-num { color: var(--red); }
+  .grade-btn.g4:hover,.grade-btn.g4.selected { background: var(--red-bg); border-color: var(--red); border-width: 2px; }
+
+  .output-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 24px; box-shadow: var(--shadow-md); }
+  .output-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .output-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 1.5px; }
+  .copy-btn { background: var(--accent); color: white; border: none; border-radius: 6px; padding: 6px 16px; font-size: 12px; font-family: var(--mono); cursor: pointer; transition: all 0.15s; font-weight: 600; }
+  .copy-btn:hover { opacity: 0.85; }
+  .copy-btn.copied { background: var(--green); }
+  .output-text { padding: 16px; font-family: var(--mono); font-size: 12px; line-height: 1.8; color: var(--text); white-space: pre-wrap; min-height: 60px; }
+  .output-placeholder { color: var(--text3); font-family: var(--sans); font-size: 12px; font-style: italic; }
+
+  .reset-btn { background: none; border: 1px solid var(--border); color: var(--text3); border-radius: 6px; padding: 7px 14px; font-size: 12px; cursor: pointer; font-family: var(--mono); transition: all 0.15s; margin-top: 12px; }
+  .reset-btn:hover { border-color: var(--red); color: var(--red); }
+
+  .count-badge { display: inline-block; background: var(--accent); color: white; font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; margin-left: 6px; }
+  .hidden { display: none !important; }
+  .empty-state { text-align: center; padding: 32px; color: var(--text3); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">TPEH · Thoracic Oncology</div>
+    <div class="title">肺癌 Adverse Event 評估工具</div>
+  </div>
+  <div class="subtitle">CTCAE v5.0 · 部北胸腔內科 · <span style="color:var(--accent);font-weight:600">App v2.0</span></div>
+</header>
+
+<div class="container">
+
+  <div class="steps">
+    <div class="step active" id="step1" onclick="stepClick(1)"><span class="step-num">①</span>選擇類別</div>
+    <div class="step" id="step2" onclick="stepClick(2)"><span class="step-num">②</span>選副作用</div>
+    <div class="step" id="step3" onclick="stepClick(3)"><span class="step-num">③</span>評估 Grade</div>
+    <div class="step" id="step4" onclick="stepClick(4)"><span class="step-num">④</span>複製病歷</div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div id="section-cat">
+    <div class="section-label">治療類別 Treatment Category</div>
+    <div class="cat-grid">
+      <button class="cat-btn" onclick="selectCategory('egfr',this)">
+        <span class="cat-icon">🎯</span>
+        <div class="cat-name">EGFR TKI</div>
+        <div class="cat-sub">Osimertinib · Gefitinib · Erlotinib · Afatinib</div>
+      </button>
+      <button class="cat-btn" onclick="selectCategory('alk',this)">
+        <span class="cat-icon">🔬</span>
+        <div class="cat-name">ALK / ROS1</div>
+        <div class="cat-sub">Alectinib · Brigatinib · Lorlatinib · Crizotinib</div>
+      </button>
+      <button class="cat-btn" onclick="selectCategory('ret',this)">
+        <span class="cat-icon">⚡</span>
+        <div class="cat-name">RET / MET / KRAS</div>
+        <div class="cat-sub">Selpercatinib · Capmatinib · Sotorasib</div>
+      </button>
+      <button class="cat-btn" onclick="selectCategory('ici',this)">
+        <span class="cat-icon">🛡️</span>
+        <div class="cat-name">免疫治療 ICI</div>
+        <div class="cat-sub">Pembrolizumab · Nivolumab · Atezolizumab</div>
+      </button>
+      <button class="cat-btn" onclick="selectCategory('chemo',this)">
+        <span class="cat-icon">💊</span>
+        <div class="cat-name">化療 Chemo</div>
+        <div class="cat-sub">Cisplatin · Carboplatin · Pemetrexed · Paclitaxel</div>
+      </button>
+      <button class="cat-btn" onclick="selectCategory('rt',this)">
+        <span class="cat-icon">☢️</span>
+        <div class="cat-name">放射治療 RT</div>
+        <div class="cat-sub">胸腔放射 / CCRT</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="section-ae" class="hidden">
+    <div class="nav-bar">
+      <div class="section-label" style="margin:0">
+        副作用清單
+        <span id="ae-count-badge" class="count-badge hidden">0</span>
+      </div>
+      <button class="back-btn" onclick="goTo(1)">← 重新選類別</button>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <span id="cat-label" style="font-weight:700;font-size:13px"></span>
+          <div id="cat-note" style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px"></div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <span class="tag tag-common">常見</span>
+          <span class="tag tag-drug">特定藥物</span>
+          <span class="tag tag-cross">跨類別</span>
+        </div>
+      </div>
+      <div style="padding:4px 16px 16px" id="ae-list"></div>
+    </div>
+    <button class="confirm-btn" onclick="goTo(3)">完成選擇，進行 Grade 評估 →</button>
+  </div>
+
+  <!-- STEP 3 + OUTPUT -->
+  <div id="section-grade" class="hidden">
+    <div class="nav-bar">
+      <div class="section-label" style="margin:0">Grade 評估</div>
+      <button class="back-btn" onclick="goTo(2)">← 返回選副作用</button>
+    </div>
+    <div class="card" id="grade-list"></div>
+    <div class="output-panel">
+      <div class="output-header">
+        <span class="output-label">SOAP · A/P 欄位貼上用</span>
+        <button class="copy-btn" id="copy-btn" onclick="copyOutput()">複製</button>
+      </div>
+      <div class="output-text" id="output-text">
+        <span class="output-placeholder">選擇 Grade 後自動產生病歷文字</span>
+      </div>
+    </div>
+    <button class="reset-btn" onclick="resetAll()">↺ 全部重來</button>
+  </div>
+
+</div>
+
+<script>
+const GRADES = [
+  {n:1,cls:'g1',short:'輕度',  desc:'無症狀或輕微，不影響日常生活，不需介入'},
+  {n:2,cls:'g2',short:'中度',  desc:'影響工具性日常活動，需局部或非侵入性處置'},
+  {n:3,cls:'g3',short:'重度',  desc:'影響自我照顧，需住院或延長住院'},
+  {n:4,cls:'g4',short:'危及生命',desc:'需緊急醫療介入'},
+];
+
+const ALL_AES = [
+  // SKIN
+  {en:'Rash acneiform',zh:'痤瘡樣皮疹',cats:['egfr'],tag:'common',warn:null,grades:{1:{def:'皮疹面積 <10% BSA，不影響日常生活',plan:'Topical hydrocortisone 1% + sunscreen; continue TKI',action:'continue'},2:{def:'皮疹面積 10–30% BSA，輕微症狀',plan:'Topical steroid (medium potency) + oral doxycycline 100mg BID x 6wks; continue TKI',action:'continue'},3:{def:'皮疹面積 >30% BSA，影響自我照顧',plan:'Oral doxycycline + systemic steroid; hold TKI; dermatology consult',action:'hold'},4:{def:'危及生命（SJS / TEN）',plan:'Permanent discontinuation; urgent dermatology/hospitalization',action:'stop'}}},
+  {en:'Rash / Pruritus',zh:'皮疹／搔癢（一般）',cats:['ici','ret'],tag:'common',warn:null,grades:{1:{def:'皮疹 <10% BSA，無症狀',plan:'Topical steroid; antihistamine PRN; continue',action:'continue'},2:{def:'皮疹 10–30% BSA，影響工具性活動',plan:'Topical steroid (medium-high potency); continue',action:'continue'},3:{def:'皮疹 >30% BSA，影響自我照顧',plan:'Hold; prednisolone 0.5–1mg/kg/d; dermatology consult',action:'hold'},4:{def:'SJS/TEN，危及生命',plan:'Permanent discontinuation; dermatology emergency',action:'stop'}}},
+  {en:'Paronychia',zh:'甲溝炎',cats:['egfr'],tag:'common',warn:null,grades:{1:{def:'輕微甲周發炎，無分泌物',plan:'Warm soaks; topical antibiotic ointment; continue TKI',action:'continue'},2:{def:'中度甲溝炎，影響工具性活動',plan:'Topical/oral antibiotics; silver nitrate cautery if granuloma; continue TKI',action:'continue'},3:{def:'嚴重甲溝炎，需外科處置',plan:'Oral antibiotics; surgical drainage; hold TKI; orthopedic/dermatology consult',action:'hold'},4:{def:'危及生命（壞死性筋膜炎等）',plan:'Permanent discontinuation; urgent surgical intervention',action:'stop'}}},
+  {en:'Dry skin',zh:'皮膚乾燥',cats:['egfr'],tag:'common',warn:null,grades:{1:{def:'輕微乾燥，偶發搔癢',plan:'Emollient moisturizer BID; continue',action:'continue'},2:{def:'中度乾燥，影響日常活動',plan:'Urea-based cream; avoid hot showers; continue',action:'continue'},3:{def:'嚴重龜裂合併疼痛或感染',plan:'Dermatology consult; consider dose reduction',action:'hold'},4:{def:'危及生命',plan:'Permanent discontinuation',action:'stop'}}},
+  {en:'Photosensitivity',zh:'光敏感',cats:['alk'],tag:'cross',warn:'Brigatinib / Alectinib 較常見；EGFR TKI 亦有報告',grades:{1:{def:'輕微皮膚反應',plan:'Broad-spectrum sunscreen SPF50+; protective clothing; continue',action:'continue'},2:{def:'中度皮膚反應，影響日常',plan:'Topical steroid; continue with sun protection',action:'continue'},3:{def:'嚴重皮膚反應',plan:'Hold; dermatology consult',action:'hold'},4:{def:'危及生命',plan:'Permanent discontinuation',action:'stop'}}},
+  {en:'Dermatitis (radiation)',zh:'放射性皮膚炎',cats:['rt'],tag:'common',warn:null,grades:{1:{def:'輕微紅斑、乾性脫皮',plan:'Moisturizer; avoid friction; continue RT',action:'continue'},2:{def:'濕性脫皮（局部）',plan:'Wound care; continue RT',action:'continue'},3:{def:'濕性脫皮（大面積）',plan:'Hold RT; wound care; pain management',action:'hold'},4:{def:'皮膚壞死/潰瘍',plan:'Stop RT; surgical evaluation',action:'stop'}}},
+  // GI
+  {en:'Diarrhea',zh:'腹瀉',cats:['egfr','alk','ret','ici'],tag:'common',warn:'Afatinib 發生率最高（~90%）',grades:{1:{def:'每天 <4次（基準以上）',plan:'Dietary mod (BRAT diet); oral hydration; loperamide PRN; continue',action:'continue'},2:{def:'每天 4–6次，影響工具性活動',plan:'Loperamide scheduled; IV hydration if needed; continue with monitoring',action:'continue'},3:{def:'每天 ≥7次，需住院或靜脈補液',plan:'Hold; IV hydration; GI consult; restart at reduced dose when ≤Gr1',action:'hold'},4:{def:'危及生命（腸穿孔、缺血）',plan:'Permanent discontinuation; emergency GI management',action:'stop'}}},
+  {en:'Nausea',zh:'噁心',cats:['egfr','alk','ret','chemo'],tag:'common',warn:'Crizotinib 最常見；Cisplatin 為高致吐藥',grades:{1:{def:'輕微噁心，不影響進食',plan:'Small frequent meals; ginger; continue',action:'continue'},2:{def:'中度噁心，進食減少但不影響營養',plan:'Metoclopramide or ondansetron PRN; continue',action:'continue'},3:{def:'嚴重噁心，需NG或靜脈營養',plan:'Hold; antiemetics IV; nutritional support',action:'hold'},4:{def:'危及生命',plan:'Permanent discontinuation',action:'stop'}}},
+  {en:'Vomiting',zh:'嘔吐',cats:['chemo','ret'],tag:'common',warn:'Cisplatin 高致吐，需積極預防性止吐',grades:{1:{def:'1次/天',plan:'Antiemetics PRN; continue',action:'continue'},2:{def:'2–5次/天',plan:'Ondansetron + Dexamethasone; continue',action:'continue'},3:{def:'>5次/天，需IV支持',plan:'Hold; IV antiemetics + hydration',action:'hold'},4:{def:'危及生命',plan:'Permanent discontinuation',action:'stop'}}},
+  {en:'Constipation',zh:'便秘',cats:['alk'],tag:'cross',warn:'Alectinib 最常見（~29%）；其他類別亦可能發生',grades:{1:{def:'偶發性便秘，可自行緩解',plan:'High-fiber diet; adequate hydration; continue',action:'continue'},2:{def:'持續便秘，需輕瀉劑',plan:'Osmotic laxative (lactulose/PEG); continue',action:'continue'},3:{def:'嚴重便秘，需灌腸或手動排便',plan:'Hold; aggressive bowel regimen; GI consult',action:'hold'},4:{def:'腸阻塞（危及生命）',plan:'Permanent discontinuation; surgical evaluation',action:'stop'}}},
+  {en:'Stomatitis / Mucositis',zh:'口腔黏膜炎',cats:['egfr','chemo'],tag:'common',warn:'Pemetrexed：需補充葉酸 + Vit B12 預防',grades:{1:{def:'輕微症狀，不影響進食',plan:'Salt water rinse; continue',action:'continue'},2:{def:'中度疼痛，影響進食',plan:'Magic mouthwash; topical lidocaine; continue',action:'continue'},3:{def:'嚴重疼痛，無法進食',plan:'Hold; IV nutrition; pain management; restart at reduced dose',action:'hold'},4:{def:'危及生命',plan:'Permanent discontinuation',action:'stop'}}},
+  {en:'Colitis (immune)',zh:'免疫性腸炎',cats:['ici'],tag:'common',warn:'需排除感染性腸炎；發生率 5–10%',grades:{1:{def:'腹瀉 <4次/天，無血便',plan:'Continue ICI; stool culture to r/o infection; dietary mod; monitor',action:'continue'},2:{def:'腹瀉 4–6次/天，腹痛',plan:'Hold ICI; prednisolone 1mg/kg/d; GI consult',action:'hold'},3:{def:'腹瀉 ≥7次/天，血便，腹膜刺激',plan:'STOP ICI; IV methylprednisolone; hospitalization; consider infliximab',action:'stop'},4:{def:'腸穿孔，危及生命',plan:'Permanent discontinuation; emergency surgery evaluation',action:'stop'}}},
+  {en:'Esophagitis (radiation)',zh:'放射性食道炎',cats:['rt'],tag:'common',warn:'CCRT 最常見副作用，影響治療完成率',grades:{1:{def:'輕微吞嚥困難，不影響進食',plan:'Soft diet; antacid; continue RT',action:'continue'},2:{def:'吞嚥困難，需軟食/流質',plan:'Lidocaine rinse; sucralfate; analgesics; nutritional support; continue RT',action:'continue'},3:{def:'嚴重，需NG或靜脈營養',plan:'Consider RT break; NG feeding; IV hydration; pain management',action:'hold'},4:{def:'穿孔/瘻管，危及生命',plan:'Stop RT; emergency surgical/endoscopy evaluation',action:'stop'}}},
+  // LIVER
+  {en:'ALT/AST elevation',zh:'肝功能異常（ALT/AST）',cats:['egfr','alk','ret','ici','chemo'],tag:'common',warn:'Sotorasib 肝毒性較高（~10% Gr3）；ICI 需排除免疫性肝炎',grades:{1:{def:'ALT/AST > ULN–3× ULN，無症狀',plan:'Recheck LFT in 2wks; continue',action:'continue'},2:{def:'ALT/AST 3–5× ULN',plan:'Weekly LFT; avoid hepatotoxic agents; continue with monitoring',action:'continue'},3:{def:'ALT/AST 5–20× ULN',plan:'Hold; recheck LFT q3–5d; restart only if ≤Gr1',action:'hold'},4:{def:'ALT/AST >20× ULN，肝衰竭',plan:'Permanent discontinuation; hepatology consult',action:'stop'}}},
+  {en:'Hepatitis (immune)',zh:'免疫性肝炎',cats:['ici'],tag:'common',warn:'ICI特有，需與藥物性肝炎鑑別',grades:{1:{def:'ALT/AST > ULN–3×',plan:'Continue ICI; recheck LFT weekly',action:'continue'},2:{def:'ALT/AST 3–5×',plan:'Hold ICI; prednisolone 0.5–1mg/kg/d',action:'hold'},3:{def:'ALT/AST 5–20×',plan:'STOP ICI; IV methylprednisolone 1–2mg/kg/d; hepatology',action:'stop'},4:{def:'ALT/AST >20×，肝衰竭',plan:'Permanent discontinuation; consider MMF if steroid-refractory',action:'stop'}}},
+  // LUNG
+  {en:'Interstitial lung disease (ILD)',zh:'間質性肺炎（ILD）',cats:['egfr','alk','ret'],tag:'common',warn:'所有TKI均需警覺；Osimertinib ~3%；Brigatinib 早期（第1–2週）風險高',grades:{1:{def:'無症狀，影像變化僅為放射科發現',plan:'Hold TKI; CT chest; pulmonology consult; close monitoring',action:'hold'},2:{def:'有症狀，影響工具性活動',plan:'Hold TKI; prednisolone 1mg/kg/d (max 80mg); pulmonology consult',action:'hold'},3:{def:'嚴重症狀，需補充氧氣',plan:'STOP TKI; IV methylprednisolone 1–2mg/kg/d; hospitalization',action:'stop'},4:{def:'危及生命，需機械通氣',plan:'Permanent discontinuation; ICU; high-dose steroid',action:'stop'}}},
+  {en:'Pneumonitis (immune)',zh:'免疫性肺炎',cats:['ici'],tag:'common',warn:'嚴重irAE，發生率 2–5%，需立即處理',grades:{1:{def:'無症狀，影像限局性浸潤',plan:'Hold ICI; CT chest; pulmonology consult; q1–2wk monitoring',action:'hold'},2:{def:'有症狀（咳嗽/呼吸困難），影響工具性活動',plan:'Hold ICI; prednisolone 1mg/kg/d (max 80mg); restart only if ≤Gr1 after taper',action:'hold'},3:{def:'嚴重症狀，需補充氧氣或住院',plan:'STOP ICI; IV methylprednisolone 1–2mg/kg/d; hospitalization; pulmonology',action:'stop'},4:{def:'危及生命，需機械通氣',plan:'Permanent discontinuation; ICU; high-dose steroid ± infliximab',action:'stop'}}},
+  {en:'Pneumonitis (radiation)',zh:'放射性肺炎',cats:['rt'],tag:'common',warn:'通常 RT 後 1–3 個月發生；V20Gy 是重要預測因子',grades:{1:{def:'無症狀，影像輕微變化',plan:'Observe; continue RT; chest follow-up',action:'continue'},2:{def:'有症狀（咳嗽/低燒/呼吸困難）',plan:'Hold RT; prednisolone 0.5–1mg/kg/d; pulmonology; taper over 4–6wks',action:'hold'},3:{def:'嚴重，需O₂',plan:'Stop RT; IV methylprednisolone 1–2mg/kg/d; hospitalization',action:'stop'},4:{def:'危及生命，需機械通氣',plan:'Stop RT; ICU; high-dose steroid; consider IVIG',action:'stop'}}},
+  {en:'Pulmonary toxicity (chemo)',zh:'化療肺毒性',cats:['chemo'],tag:'cross',warn:'Gemcitabine / Pemetrexed',grades:{1:{def:'無症狀，影像輕微變化',plan:'Hold suspicious agent; CT chest; pulmonology',action:'hold'},2:{def:'有症狀，影響工具性活動',plan:'Hold; prednisolone 1mg/kg/d; pulmonology',action:'hold'},3:{def:'嚴重，需O₂',plan:'Stop causative agent; IV steroid; hospitalization',action:'stop'},4:{def:'危及生命',plan:'Permanent discontinuation; ICU',action:'stop'}}},
+  {en:'Pulmonary fibrosis (late RT)',zh:'放射性肺纖維化（晚期）',cats:['rt'],tag:'common',warn:null,grades:{1:{def:'無症狀，影像輕微纖維化',plan:'Observe; annual CT follow-up',action:'continue'},2:{def:'有症狀，影響工具性活動',plan:'Pulmonary rehab; oxygen if needed; pulmonology follow-up',action:'continue'},3:{def:'嚴重，影響自我照顧，需O₂',plan:'Pulmonology co-management; consider anti-fibrotic therapy',action:'continue'},4:{def:'危及生命，需呼吸器',plan:'ICU; palliative care discussion',action:'continue'}}},
+  // CARDIAC
+  {en:'QTc prolongation',zh:'QTc 延長',cats:['egfr','ret'],tag:'drug',warn:'Osimertinib (EGFR)、Selpercatinib (RET) 需定期監測 ECG',grades:{1:{def:'QTc 450–480ms',plan:'Correct electrolytes; recheck ECG; continue with monitoring',action:'continue'},2:{def:'QTc 481–500ms',plan:'Hold; correct electrolytes; cardiology consult; restart if QTc ≤480ms',action:'hold'},3:{def:'QTc >500ms 或增加 >60ms',plan:'Hold; cardiology consult; restart only at reduced dose',action:'hold'},4:{def:'Torsades de pointes / 惡性心律不整',plan:'Permanent discontinuation; emergency cardiology',action:'stop'}}},
+  {en:'Cardiomyopathy / LVEF decrease',zh:'心肌病變／LVEF 下降',cats:['egfr'],tag:'drug',warn:'Osimertinib 特有，建議治療前後監測心臟超音波',grades:{1:{def:'LVEF 40–50%，無症狀',plan:'Recheck echo in 6wks; cardiology consult; continue with monitoring',action:'continue'},2:{def:'LVEF <40% 或症狀性心臟衰竭',plan:'Hold TKI; cardiology co-management; restart only if LVEF recovered',action:'hold'},3:{def:'嚴重心臟衰竭，需藥物介入',plan:'Hold; HF management; restart at reduced dose only if recovered',action:'hold'},4:{def:'危及生命',plan:'Permanent discontinuation; emergency cardiac care',action:'stop'}}},
+  {en:'Myocarditis (immune)',zh:'免疫性心肌炎',cats:['ici'],tag:'common',warn:'罕見但致死率高（~25–50%），出現胸痛/心悸/呼吸困難需立即評估',grades:{1:{def:'Troponin 輕微升高，無症狀',plan:'Hold ICI; ECG + echo; cardiology; IV methylprednisolone 1mg/kg/d',action:'hold'},2:{def:'輕微症狀（呼吸困難/胸痛）',plan:'Hold ICI; IV methylprednisolone 1–2mg/kg/d; cardiac monitoring',action:'hold'},3:{def:'嚴重心臟衰竭或心律不整',plan:'STOP ICI; IV methylprednisolone 1g/d; CCU; emergency cardiology',action:'stop'},4:{def:'危及生命（心源性休克/心跳停止）',plan:'Permanent discontinuation; CCU; high-dose steroid ± IVIG/ATG',action:'stop'}}},
+  {en:'Hypertension',zh:'高血壓',cats:['ret'],tag:'cross',warn:'Capmatinib / Tepotinib 常見；其他類別亦可能發生',grades:{1:{def:'SBP 120–139 或 DBP 80–89',plan:'Lifestyle mod; monitor; continue',action:'continue'},2:{def:'SBP 140–159 或 DBP 90–99',plan:'Start/adjust antihypertensive; continue',action:'continue'},3:{def:'SBP ≥160 或 DBP ≥100，需≥2藥',plan:'Hold; aggressive BP management; restart if controlled',action:'hold'},4:{def:'高血壓危象（器官損傷）',plan:'Permanent discontinuation; emergency',action:'stop'}}},
+  {en:'Cardiac toxicity (late RT)',zh:'心臟毒性（晚期放射）',cats:['rt'],tag:'common',warn:'左側腫瘤或縱隔照射需特別注意心臟劑量',grades:{1:{def:'無症狀，ECG 輕微變化',plan:'Annual cardiology follow-up; continue',action:'continue'},2:{def:'輕微症狀（心悸/輕度心包積液）',plan:'Cardiology consult; echo; continue',action:'continue'},3:{def:'嚴重心包炎/心肌病變',plan:'Cardiology management; consider pericardiocentesis',action:'continue'},4:{def:'危及生命（心包填塞/嚴重心衰）',plan:'Emergency cardiology; ICU',action:'continue'}}},
+  // ENDOCRINE
+  {en:'Hypothyroidism',zh:'甲狀腺功能低下',cats:['ici'],tag:'common',warn:'最常見 irAE（5–20%），多數可繼續 ICI',grades:{1:{def:'TSH 偏高，無症狀',plan:'Continue ICI; recheck TFT in 4–6wks',action:'continue'},2:{def:'有症狀（疲倦/怕冷/便秘）',plan:'Start levothyroxine; continue ICI',action:'continue'},3:{def:'嚴重症狀，影響自我照顧',plan:'Levothyroxine; hold ICI; endocrinology consult',action:'hold'},4:{def:'Myxedema coma',plan:'Permanent discontinuation; emergency endocrinology',action:'stop'}}},
+  {en:'Hyperthyroidism / Thyroiditis',zh:'甲狀腺功能亢進',cats:['ici'],tag:'common',warn:null,grades:{1:{def:'TSH 偏低，無症狀',plan:'Continue ICI; recheck TFT 4wks',action:'continue'},2:{def:'有症狀（心悸/多汗/體重減輕）',plan:'Beta-blocker PRN; continue ICI; recheck TFT 2wks',action:'continue'},3:{def:'嚴重症狀',plan:'Hold ICI; methimazole if persistent; endocrinology',action:'hold'},4:{def:'甲狀腺危象',plan:'Permanent discontinuation; emergency',action:'stop'}}},
+  {en:'Adrenal insufficiency',zh:'腎上腺功能低下',cats:['ici'],tag:'common',warn:'可能危及生命；應力劑量類固醇覆蓋',grades:{1:{def:'輕微症狀',plan:'Continue ICI; morning cortisol; endocrinology',action:'continue'},2:{def:'有症狀（疲倦/噁心/低血壓）',plan:'Hold ICI; hydrocortisone replacement; endocrinology',action:'hold'},3:{def:'嚴重，影響自我照顧',plan:'Hold ICI; stress-dose hydrocortisone; hospitalization',action:'hold'},4:{def:'Adrenal crisis，危及生命',plan:'Permanent discontinuation; emergency IV hydrocortisone',action:'stop'}}},
+  {en:'Hypophysitis',zh:'腦下垂體炎',cats:['ici'],tag:'drug',warn:'CTLA-4 抑制劑較常見',grades:{1:{def:'輕微頭痛，TFT 正常',plan:'Continue ICI; pituitary hormone panel; endocrinology',action:'continue'},2:{def:'有症狀，部分賀爾蒙缺乏',plan:'Hold ICI; hormone replacement; prednisolone 1mg/kg/d',action:'hold'},3:{def:'嚴重頭痛/視野缺損',plan:'Hold ICI; IV methylprednisolone; MRI pituitary; neurosurgery consult',action:'hold'},4:{def:'危及生命',plan:'Permanent discontinuation; emergency',action:'stop'}}},
+  // RENAL
+  {en:'Nephrotoxicity',zh:'腎毒性',cats:['chemo'],tag:'drug',warn:'Cisplatin 最主要副作用；需積極水化預防',grades:{1:{def:'Cr > ULN–1.5×',plan:'Continue; hydration; monitor Cr',action:'continue'},2:{def:'Cr 1.5–3×',plan:'Hold Cisplatin; aggressive hydration; nephrology',action:'hold'},3:{def:'Cr 3–6×',plan:'Hold chemo; nephrology; consider switch to Carboplatin',action:'hold'},4:{def:'Cr >6×，需透析',plan:'Permanent discontinuation of Cisplatin; dialysis evaluation',action:'stop'}}},
+  {en:'Nephritis (immune)',zh:'免疫性腎炎',cats:['ici'],tag:'common',warn:null,grades:{1:{def:'Cr > ULN–1.5× baseline',plan:'Continue ICI; recheck Cr weekly; UA',action:'continue'},2:{def:'Cr 1.5–3× baseline',plan:'Hold ICI; prednisolone 1mg/kg/d; nephrology',action:'hold'},3:{def:'Cr 3–6× baseline',plan:'STOP ICI; IV methylprednisolone; nephrology; consider renal biopsy',action:'stop'},4:{def:'Cr >6× baseline，需透析',plan:'Permanent discontinuation; dialysis evaluation',action:'stop'}}},
+  {en:'Hypomagnesemia',zh:'低血鎂',cats:['chemo'],tag:'drug',warn:'Cisplatin 特有，常合併低血鉀，需同時補充',grades:{1:{def:'Mg 1.2–<LLN mg/dL',plan:'Oral Mg supplement; continue',action:'continue'},2:{def:'Mg 0.9–<1.2',plan:'Oral Mg + IV if needed; continue',action:'continue'},3:{def:'Mg <0.9，有症狀（肌肉痙攣/心律不整）',plan:'IV Mg replacement; hold chemo; monitor Mg/K/Ca',action:'hold'},4:{def:'危及生命',plan:'Hold chemo; emergency replacement; cardiology',action:'hold'}}},
+  // NEURO
+  {en:'Peripheral neuropathy',zh:'周邊神經病變',cats:['chemo'],tag:'drug',warn:'Paclitaxel / Cisplatin；可能不可逆，需追蹤',grades:{1:{def:'輕微感覺異常，不影響功能',plan:'Continue; vitamin B6; patient education',action:'continue'},2:{def:'中度症狀，影響工具性活動',plan:'Dose reduction (Paclitaxel ↓20%); duloxetine 30–60mg QD; continue',action:'continue'},3:{def:'嚴重，影響自我照顧',plan:'Hold chemo; neurology consult; pain management',action:'hold'},4:{def:'危及生命（呼吸麻痹等）',plan:'Permanent discontinuation',action:'stop'}}},
+  {en:'CNS effects (cognitive/mood)',zh:'CNS 效應（認知/情緒）',cats:['alk'],tag:'drug',warn:'Lorlatinib 特有：認知改變、情緒障礙、言語問題（~15–30%）',grades:{1:{def:'輕微認知改變或情緒波動',plan:'Patient/family education; monitor; continue',action:'continue'},2:{def:'中度，影響工具性日常活動',plan:'Dose reduction; psychiatry/neurology consult',action:'hold'},3:{def:'嚴重，影響自我照顧或安全',plan:'Hold TKI; urgent neurology/psychiatry consult',action:'hold'},4:{def:'危及生命',plan:'Permanent discontinuation',action:'stop'}}},
+  // METABOLIC
+  {en:'Hyperlipidemia',zh:'高血脂',cats:['alk'],tag:'drug',warn:'Lorlatinib 特有（>80%），需積極監測並使用 statin',grades:{1:{def:'TC 200–239 或 TG 150–299 mg/dL',plan:'Diet modification; continue; recheck in 4wks',action:'continue'},2:{def:'TC 240–299 或 TG 300–499',plan:'Initiate statin; continue',action:'continue'},3:{def:'TC ≥300 或 TG ≥500',plan:'Statin + fibrate; consider hold; lipid specialist',action:'hold'},4:{def:'危及生命（胰臟炎等）',plan:'Hold/stop; emergency management',action:'stop'}}},
+  // HAEMATOLOGIC
+  {en:'Neutropenia',zh:'中性球低下（ANC）',cats:['chemo'],tag:'common',warn:null,grades:{1:{def:'ANC 1500–<2000/mm³',plan:'Continue; monitor CBC',action:'continue'},2:{def:'ANC 1000–<1500/mm³',plan:'Continue; more frequent CBC monitoring',action:'continue'},3:{def:'ANC 500–<1000/mm³',plan:'Hold chemo; consider G-CSF; fever → FN protocol',action:'hold'},4:{def:'ANC <500/mm³',plan:'Hold chemo; G-CSF; if fever → admit + IV antibiotics',action:'hold'}}},
+  {en:'Febrile neutropenia',zh:'發燒性中性球低下',cats:['chemo'],tag:'common',warn:'需緊急處理，延誤可致死；立即送急診',grades:{1:{def:'（不適用）',plan:'N/A',action:'continue'},2:{def:'（不適用）',plan:'N/A',action:'continue'},3:{def:'ANC <1000 + 發燒 ≥38.3°C',plan:'Hold chemo; hospitalization; IV broad-spectrum antibiotics; G-CSF; CBC daily',action:'hold'},4:{def:'危及生命（敗血症/休克）',plan:'Permanent dose reduction or regimen change; emergency; ICU if needed',action:'stop'}}},
+  {en:'Anemia',zh:'貧血（Hgb）',cats:['chemo'],tag:'common',warn:null,grades:{1:{def:'Hgb 10–<LLN g/dL',plan:'Continue; iron supplement if deficient',action:'continue'},2:{def:'Hgb 8–<10 g/dL',plan:'Consider ESA; continue chemo',action:'continue'},3:{def:'Hgb <8 g/dL',plan:'Hold chemo; pRBC transfusion if symptomatic',action:'hold'},4:{def:'危及生命，需緊急輸血',plan:'Hold chemo; urgent transfusion; consider regimen modification',action:'hold'}}},
+  {en:'Thrombocytopenia',zh:'血小板低下（PLT）',cats:['chemo'],tag:'common',warn:null,grades:{1:{def:'PLT 75,000–<LLN/mm³',plan:'Continue; monitor',action:'continue'},2:{def:'PLT 50,000–<75,000',plan:'Continue with caution; avoid invasive procedures',action:'continue'},3:{def:'PLT 25,000–<50,000',plan:'Hold chemo; platelet transfusion if bleeding or <20K',action:'hold'},4:{def:'PLT <25,000，自發性出血',plan:'Hold; urgent platelet transfusion; hematology',action:'hold'}}},
+  // GENERAL
+  {en:'Fatigue',zh:'疲倦',cats:['egfr','alk','ici'],tag:'cross',warn:null,grades:{1:{def:'輕微疲倦，不影響活動',plan:'Activity pacing; continue',action:'continue'},2:{def:'中度疲倦，影響工具性活動',plan:'Investigate reversible causes (anemia, thyroid, etc.); continue',action:'continue'},3:{def:'嚴重疲倦，影響自我照顧',plan:'Hold; exclude other causes; restart if improved',action:'hold'},4:{def:'危及生命',plan:'Permanent discontinuation',action:'stop'}}},
+  {en:'Edema (peripheral)',zh:'周邊水腫',cats:['alk'],tag:'drug',warn:'Alectinib 常見（~33%），多為輕度周邊水腫',grades:{1:{def:'輕微水腫，不影響日常',plan:'Leg elevation; compression stockings; continue',action:'continue'},2:{def:'中度水腫，影響工具性活動',plan:'Diuretic consideration; continue; exclude cardiac/renal cause',action:'continue'},3:{def:'嚴重水腫，需醫療介入',plan:'Hold; IV diuretic; workup for cause',action:'hold'},4:{def:'危及生命',plan:'Permanent discontinuation',action:'stop'}}},
+  {en:'Alopecia',zh:'落髮',cats:['chemo'],tag:'drug',warn:'Paclitaxel / Vinorelbine 最常見；治療結束後多可恢復',grades:{1:{def:'髮量減少 <50%',plan:'Patient education; cooling cap option; continue',action:'continue'},2:{def:'髮量減少 ≥50%，影響外觀',plan:'Wig/head covering support; continue（落髮不需停藥）',action:'continue'},3:{def:'（通常不分3級）',plan:'Continue',action:'continue'},4:{def:'（不適用）',plan:'N/A',action:'continue'}}},
+  // EYE
+  {en:'Visual disturbance',zh:'視覺異常',cats:['alk'],tag:'drug',warn:'Crizotinib 最常見（~60%，多輕微），通常為閃光、重影',grades:{1:{def:'閃光、複視等輕微視覺改變',plan:'Patient education; avoid night driving; continue',action:'continue'},2:{def:'視覺改變影響日常活動',plan:'Ophthalmology consult; continue',action:'continue'},3:{def:'嚴重視覺損傷',plan:'Hold; urgent ophthalmology',action:'hold'},4:{def:'永久視力喪失',plan:'Permanent discontinuation',action:'stop'}}},
+  {en:'Eye disorders (keratitis)',zh:'眼部不適／角膜炎',cats:['egfr'],tag:'cross',warn:null,grades:{1:{def:'輕微眼乾或不適',plan:'Artificial tears; avoid contact lens; continue',action:'continue'},2:{def:'中度角膜炎，影響視力',plan:'Hold; ophthalmology consult; topical treatment',action:'hold'},3:{def:'嚴重視力損傷',plan:'Hold; urgent ophthalmology; restart only if recovered to ≤Gr1',action:'hold'},4:{def:'永久視力喪失',plan:'Permanent discontinuation',action:'stop'}}},
+  // RHEUM
+  {en:'Arthralgia / Arthritis',zh:'關節痛／關節炎',cats:['ici'],tag:'common',warn:null,grades:{1:{def:'輕微關節疼痛，不影響功能',plan:'NSAIDs; continue ICI',action:'continue'},2:{def:'中度，影響工具性活動',plan:'NSAIDs; consider prednisolone 10–20mg/d; continue ICI; rheumatology',action:'continue'},3:{def:'嚴重，影響自我照顧',plan:'Hold ICI; prednisolone 1mg/kg/d; rheumatology',action:'hold'},4:{def:'危及生命',plan:'Permanent discontinuation; high-dose steroid',action:'stop'}}},
+];
+
+const CAT_PRIORITY = {egfr:['egfr'],alk:['alk'],ret:['ret'],ici:['ici'],chemo:['chemo'],rt:['rt']};
+const CAT_INFO = {
+  egfr: {label:'EGFR TKI', note:'Osimertinib · Gefitinib · Erlotinib · Afatinib · Lazertinib'},
+  alk:  {label:'ALK / ROS1 TKI', note:'Alectinib · Brigatinib · Lorlatinib · Crizotinib · Entrectinib'},
+  ret:  {label:'RET / MET / KRAS TKI', note:'Selpercatinib · Pralsetinib · Capmatinib · Tepotinib · Sotorasib · Adagrasib'},
+  ici:  {label:'ICI (PD-1 / PD-L1)', note:'Pembrolizumab · Nivolumab · Atezolizumab · Durvalumab · Cemiplimab'},
+  chemo:{label:'Chemotherapy', note:'Cisplatin · Carboplatin · Pemetrexed · Paclitaxel · Gemcitabine · Vinorelbine · Etoposide'},
+  rt:   {label:'Radiation Therapy (RT)', note:'胸腔放射治療 / CCRT'},
+};
+const TAG_HTML = {
+  common:'<span class="tag tag-common">常見</span>',
+  drug:  '<span class="tag tag-drug">特定藥物</span>',
+  cross: '<span class="tag tag-cross">跨類別</span>',
+};
+const ACTION_TEXT = {continue:'continue', hold:'hold / dose reduce', stop:'STOP (permanent)'};
+
+let S = {cat:null, selected:[]};
+
+function updateSteps(active) {
+  for (let i=1;i<=4;i++) {
+    const el=document.getElementById('step'+i);
+    el.classList.remove('active','done');
+    if (i<active) el.classList.add('done');
+    else if (i===active) el.classList.add('active');
+  }
+}
+function stepClick(n) {
+  if (!document.getElementById('step'+n).classList.contains('done')) return;
+  goTo(n);
+}
+function show(id){document.getElementById(id).classList.remove('hidden');}
+function hide(id){document.getElementById(id).classList.add('hidden');}
+
+function goTo(n) {
+  if (n===1) {
+    show('section-cat'); hide('section-ae'); hide('section-grade');
+    updateSteps(1);
+  } else if (n===2) {
+    if (!S.cat) return;
+    hide('section-cat'); show('section-ae'); hide('section-grade');
+    updateSteps(2); renderAEList();
+  } else if (n===3) {
+    if (!S.cat) return;
+    if (S.selected.length===0) {alert('請至少選擇一個副作用'); return;}
+    hide('section-cat'); hide('section-ae'); show('section-grade');
+    updateSteps(3); renderGradeList(); updateOutput();
+  }
+}
+
+function selectCategory(cat, btn) {
+  S.cat=cat; S.selected=[];
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const info=CAT_INFO[cat];
+  document.getElementById('cat-label').textContent=info.label;
+  document.getElementById('cat-note').textContent=info.note;
+  goTo(2);
+}
+
+function renderAEList() {
+  const container=document.getElementById('ae-list');
+  container.innerHTML='';
+  const priCats=CAT_PRIORITY[S.cat];
+  const primary=ALL_AES.filter(ae=>ae.cats.some(c=>priCats.includes(c)));
+  const secondary=ALL_AES.filter(ae=>!ae.cats.some(c=>priCats.includes(c)));
+  if (primary.length) appendGroup(container,'此類別已知副作用',primary);
+  if (secondary.length) appendGroup(container,'其他可能副作用（跨類別，醫師自判）',secondary);
+  updateBadge();
+}
+
+function appendGroup(container, label, aes) {
+  const lbl=document.createElement('div');
+  lbl.className='ae-group-label'; lbl.textContent=label;
+  container.appendChild(lbl);
+  const grid=document.createElement('div');
+  grid.className='ae-grid';
+  aes.forEach(ae=>{
+    const id='ae-'+ae.en.replace(/[^a-zA-Z0-9]/g,'');
+    const btn=document.createElement('button');
+    btn.className='ae-btn'; btn.id=id;
+    if (S.selected.some(s=>s.ae.en===ae.en)) btn.classList.add('selected');
+    btn.innerHTML=
+      '<span class="ae-zh">'+ae.zh+'</span>'+
+      '<span class="ae-en">'+ae.en+'</span>'+
+      (TAG_HTML[ae.tag]||'')+
+      (ae.warn?'<span class="tag tag-warn" title="'+ae.warn+'">⚠️</span>':'');
+    btn.onclick=()=>toggleAE(ae,btn);
+    grid.appendChild(btn);
+  });
+  container.appendChild(grid);
+}
+
+function toggleAE(ae,btn) {
+  const idx=S.selected.findIndex(s=>s.ae.en===ae.en);
+  if (idx>=0) { S.selected.splice(idx,1); btn.classList.remove('selected'); }
+  else { S.selected.push({ae,grade:null,gradeShort:null,gradeDesc:null,plan:null,action:null}); btn.classList.add('selected'); }
+  updateBadge();
+}
+
+function updateBadge() {
+  const badge=document.getElementById('ae-count-badge');
+  const n=S.selected.length;
+  if (n>0){badge.textContent=n;badge.classList.remove('hidden');}
+  else{badge.classList.add('hidden');}
+}
+
+function renderGradeList() {
+  const container=document.getElementById('grade-list');
+  container.innerHTML='';
+  if (S.selected.length===0){container.innerHTML='<div class="empty-state">尚未選擇任何副作用</div>';return;}
+  S.selected.forEach((item,idx)=>{
+    const ae=item.ae;
+    const div=document.createElement('div');
+    div.className='selected-ae-item';
+    const nameRow=document.createElement('div');
+    nameRow.className='ae-name-row';
+    nameRow.innerHTML='<span style="font-weight:700;font-size:13px">'+ae.zh+'</span>'
+      +'<span style="font-family:var(--mono);font-size:10px;color:var(--text3)">'+ae.en+'</span>';
+    if (ae.warn) {
+      const tip=document.createElement('span');
+      tip.className='tag tag-warn';
+      tip.style.cssText='font-size:9px;max-width:300px;white-space:normal;line-height:1.4;cursor:default';
+      tip.textContent='⚠️ '+ae.warn;
+      nameRow.appendChild(tip);
+    }
+    const removeBtn=document.createElement('button');
+    removeBtn.className='ae-remove'; removeBtn.innerHTML='×'; removeBtn.title='移除此副作用';
+    removeBtn.onclick=()=>removeAE(idx);
+    nameRow.appendChild(removeBtn);
+    div.appendChild(nameRow);
+    const gradeRow=document.createElement('div');
+    gradeRow.className='grade-row';
+    GRADES.forEach(g=>{
+      const gData=ae.grades[g.n];
+      if (!gData) return;
+      const btn=document.createElement('button');
+      btn.className='grade-btn '+g.cls;
+      btn.id='gbtn-'+idx+'-'+g.n;
+      if (item.grade===g.n) btn.classList.add('selected');
+      btn.innerHTML='<div class="grade-num">Gr.'+g.n+'（'+g.short+'）</div>'
+        +'<div class="grade-desc">'+gData.def+'</div>';
+      btn.onclick=()=>selectGrade(idx,g.n,g,gData);
+      gradeRow.appendChild(btn);
+    });
+    div.appendChild(gradeRow);
+    container.appendChild(div);
+  });
+}
+
+function selectGrade(aeIdx,gradeNum,gradeObj,gData) {
+  S.selected[aeIdx].grade=gradeNum;
+  S.selected[aeIdx].gradeShort=gradeObj.short;
+  S.selected[aeIdx].gradeDesc=gradeObj.desc;
+  S.selected[aeIdx].plan=gData.plan;
+  S.selected[aeIdx].action=gData.action;
+  GRADES.forEach(g=>{const b=document.getElementById('gbtn-'+aeIdx+'-'+g.n);if(b)b.classList.remove('selected');});
+  const active=document.getElementById('gbtn-'+aeIdx+'-'+gradeNum);
+  if (active) active.classList.add('selected');
+  updateOutput();
+  // mark step 4 done once any grade selected
+  const s4=document.getElementById('step4');
+  if (!s4.classList.contains('active')) s4.classList.add('done');
+}
+
+function removeAE(idx) {
+  const ae=S.selected[idx].ae;
+  S.selected.splice(idx,1);
+  const btn=document.getElementById('ae-'+ae.en.replace(/[^a-zA-Z0-9]/g,''));
+  if (btn) btn.classList.remove('selected');
+  updateBadge();
+  if (S.selected.length===0){goTo(2);return;}
+  renderGradeList(); updateOutput();
+}
+
+function updateOutput() {
+  const cat=CAT_INFO[S.cat];
+  const graded=S.selected.filter(s=>s.grade!==null);
+  if (graded.length===0) {
+    document.getElementById('output-text').innerHTML='<span class="output-placeholder">選擇 Grade 後自動產生病歷文字</span>';
+    return;
+  }
+  let lines=['AE ('+cat.label+'):'];
+  graded.forEach((item,i)=>{
+    const g=GRADES[item.grade-1];
+    lines.push((i+1)+'. '+item.ae.en+' ('+item.ae.zh+') Gr.'+item.grade+'（'+g.short+'：'+g.desc+'）');
+    lines.push('   Plan: '+item.plan+' / '+ACTION_TEXT[item.action]);
+    if (i<graded.length-1) lines.push('');
+  });
+  document.getElementById('output-text').textContent=lines.join('\n');
+}
+
+function copyOutput() {
+  const text=document.getElementById('output-text').textContent;
+  if (!text||text.includes('選擇 Grade')) return;
+
+  const btn=document.getElementById('copy-btn');
+
+  // Method 1: modern clipboard API
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(()=>{
+      btn.textContent='✓ 已複製'; btn.classList.add('copied');
+      setTimeout(()=>{btn.textContent='複製';btn.classList.remove('copied');},2000);
+    }).catch(()=>fallbackCopy(text,btn));
+  } else {
+    fallbackCopy(text,btn);
+  }
+}
+
+function fallbackCopy(text,btn) {
+  // Method 2: textarea execCommand fallback
+  const ta=document.createElement('textarea');
+  ta.value=text;
+  ta.style.cssText='position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try {
+    document.execCommand('copy');
+    btn.textContent='✓ 已複製'; btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='複製';btn.classList.remove('copied');},2000);
+  } catch(e) {
+    btn.textContent='請手動複製'; 
+    setTimeout(()=>{btn.textContent='複製';},2000);
+  }
+  document.body.removeChild(ta);
+}
+
+function resetAll() {
+  S={cat:null,selected:[]};
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('selected'));
+  goTo(1);
+}
+</script>
+</body>
+</html>
